@@ -1,0 +1,44 @@
+#include <wait.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/fcntl.h>
+#include <string.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define BA 5
+
+struct data {
+int buffer[BA];
+sem_t full, mutex, empty;
+}*shared_data;
+
+int main() {
+    int fd = shm_open("/shared",O_CREAT|O_RDWR, 0777);
+    ftruncate(fd, sizeof(struct data));
+    shared_data = mmap(NULL, sizeof(struct data), PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+    sem_init(&(shared_data -> mutex), 1, 1);
+    sem_init(&(shared_data -> full), 1, 0);
+    sem_init(&(shared_data -> empty), 1, BA);
+    int index = 0, n;
+    while(1) {
+        if(sem_trywait(&(shared_data -> empty)) != 0) {
+        printf("\nBuffer is full!\n");
+        exit(0);
+        sem_trywait(&(shared_data -> empty));
+    }
+        int item = rand() % 100;
+        sem_wait(&(shared_data -> mutex));
+        shared_data -> buffer[index] = item;
+        printf("\nThe produced item is: %d",item);
+        index = (index + 1) % BA;
+        sem_post(&(shared_data -> mutex));
+        sem_post(&(shared_data -> full));
+        sleep(2);
+  }
+return 0;
+}
