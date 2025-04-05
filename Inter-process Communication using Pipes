@@ -1,0 +1,56 @@
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <wait.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/fcntl.h>
+#include <string.h>
+
+int main() {
+    int shm_id, status, turn = 1;
+    shm_id = shm_open("/chat",O_CREAT|O_RDWR, 0666);
+    ftruncate(shm_id, 4096);
+    while(turn){
+    
+            pid_t pid = fork();
+            if(pid > 0) {
+                char *ptr = mmap(NULL, 4096, PROT_WRITE|PROT_READ, MAP_SHARED, shm_id, 0);
+                
+                printf("\nParent message write: ");
+                fgets(ptr, sizeof(ptr), stdin);
+                if(strcmp(ptr,"exit\n") == 0){
+                    turn = 0;
+                    break;
+                }
+                if(turn == 1) {
+                    wait(&status);
+                if(strcmp(ptr,"exit\n") == 0){
+                    turn = 0;
+                    break;
+                }
+                printf("\nParent message read: ");
+                printf("%s",ptr);
+                munmap(ptr, 4096);
+            }
+            }
+            
+            else if (pid == 0) {
+                    sleep(4);
+                    printf("\nChild Message read: ");
+                    char *ptr1 = mmap(NULL, 4096, PROT_WRITE|PROT_READ, MAP_SHARED, shm_id, 0);
+                    printf("%s",ptr1);
+                    
+                    printf("\nChild Message write: ");
+                    fgets(ptr1, sizeof(ptr1), stdin);
+                    munmap(ptr1, 4096);
+                    turn = 0;
+            }
+
+           else {
+              printf("\nFork creation failed!");
+           }
+          }
+                     shm_unlink("/chat");
+return 0;
+}
