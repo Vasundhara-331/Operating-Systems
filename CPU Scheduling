@@ -1,0 +1,222 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+struct Process {
+    int pid;
+    int arrival;
+    int burst;
+    int priority;
+    int waiting;
+    int turnaround;
+    int remaining;
+    int completion;
+};
+
+void swap(struct Process *a, struct Process *b) {
+   struct Process temp;
+   temp = *a;
+   *a = *b;
+   *b = temp;
+}
+
+// FIRST COME FIRST SERVE(FCFS) SCHEDULING ALGORITHM
+void fcfs(struct Process p[], int n) {
+  int i,j;
+  float sum_ta = 0.0, avg_ta, sum_wt = 0.0, avg_wt;
+  int completion_time = 0;
+  for(i = 0; i < n; i++) {
+     for(j = 0; j < n - 1; j++) {
+        if(p[j].arrival > p[j+1].arrival) {
+          swap(&p[j], &p[j+1]);
+        }
+      }
+    }
+    
+    printf("\nGantt Chart:\n0");
+    for(i = 0; i < n; i++) {
+      if(completion_time < p[i].arrival) {
+        completion_time = p[i].arrival;
+      }
+      completion_time += p[i].burst;
+      p[i].completion = completion_time;
+      p[i].turnaround = completion_time - p[i].arrival;
+      p[i].waiting = p[i].turnaround - p[i].burst;      
+      printf("|P%d|%d",p[i].pid, completion_time);
+      sum_ta += p[i].turnaround;
+      avg_ta = sum_ta/n;
+      sum_wt += p[i].waiting;
+      avg_wt = sum_wt/n;
+    }
+    printf("\nAverage Turnaround Time: %0.2f", avg_ta);
+    printf("\nAverage Waiting Time: %0.2f", avg_wt);
+  }
+
+// NON-PREEMPTIVE SHORTEST JOB FIRST(SJF) SCHEDULING ALGORITHM
+void sjf(struct Process p[], int n) {
+  int i;
+  int completion_time = 0, completed = 0, min_index;
+  float sum_ta = 0.0, avg_ta, sum_wt = 0.0, avg_wt;
+  for(i = 0; i < n; i++) {
+    p[i].remaining = p[i].burst;
+  }
+  printf("\nGantt Chart:\n0");
+  while(completed < n) {
+     min_index = -1;
+     for(i = 0; i < n; i++) {
+       if(p[i].arrival <= completion_time && p[i].remaining > 0) {
+         if(min_index == -1 || p[i].burst < p[min_index].burst) {
+            min_index = i;
+          }
+        }
+      }
+      if(min_index == -1) {
+        completion_time++;
+        continue;
+      }
+      completion_time += p[min_index].burst;
+      p[min_index].completion = completion_time;
+      p[min_index].turnaround = p[min_index].completion - p[min_index].arrival;
+      p[min_index].waiting =  p[min_index].turnaround - p[min_index].burst;
+      p[min_index].remaining = 0;
+      completed++;
+      printf("|P%d|%d",p[min_index].pid, completion_time);
+      sum_ta += p[min_index].turnaround;
+      avg_ta = sum_ta/n;
+      sum_wt += p[min_index].waiting;
+      avg_wt = sum_wt/n;
+    }
+    printf("\nAverage Turnaround Time: %0.2f", avg_ta);
+    printf("\nAverage Waiting Time: %0.2f", avg_wt);
+  }
+    
+// PREEMPTIVE ROUND ROBIN SCHEDULING ALGORITHM
+void rr(struct Process p[], int n, int quantum) {
+  int time = 0, completed = 0,i,j;
+  float sum_ta = 0.0, avg_ta, sum_wt = 0.0, avg_wt;
+  for(i = 0; i < n; i++) {
+  p[i].remaining = p[i].burst;
+  }
+  printf("\nGantt Chart:\n0");
+  while(completed < n) {
+    completed = 0;
+    for(i = 0; i < n; i++) {
+      if(p[i].remaining > 0) {
+        if(p[i].remaining > quantum) {
+          time += quantum;
+          p[i].remaining -= quantum;
+        }
+        else {
+          time += p[i].remaining;
+          p[i].completion = time;
+          p[i].turnaround = p[i].completion - p[i].arrival;
+          p[i].waiting =  p[i].turnaround - p[i].burst;
+          p[i].remaining = 0;
+          completed++;
+            sum_ta += p[i].turnaround;
+            avg_ta = sum_ta/n;
+            sum_wt += p[i].waiting;
+            avg_wt = sum_wt/n;
+        }
+        completed = 1;
+        printf("|P%d|%d",p[i].pid, time);
+      }
+    }
+    if(!completed) break;
+ 
+  }
+    printf("\nAverage Turnaround Time: %0.2f", avg_ta);
+    printf("\nAverage Waiting Time: %0.2f", avg_wt);
+}
+
+// PRIORITY SCHEDULING 
+void priority_scheduling(struct Process p[], int n) {
+  int i,j;
+  int completion_time = 0, completed = 0, highest_priority;
+  float sum_ta = 0.0, avg_ta, sum_wt = 0.0, avg_wt;
+  for(i = 0; i < n; i++) {
+     p[i].remaining = p[i].burst;
+    }
+    printf("\nGantt Chart:\n0");
+    while(completed < n) {
+       highest_priority = -1;
+       for(i = 0; i < n; i++) {
+          if(p[i].arrival <= completion_time && p[i].remaining > 0) {
+            if(highest_priority == -1 || p[i].priority < p[highest_priority].priority) {
+            highest_priority = i;
+          }
+        }
+      }
+      if(highest_priority == -1) {
+        completion_time++;
+        continue;
+      }
+      completion_time += p[highest_priority].burst;
+      p[highest_priority].completion = completion_time;
+      p[highest_priority].turnaround = p[highest_priority].completion - p[highest_priority].arrival;
+      p[highest_priority].waiting = p[highest_priority].turnaround - p[highest_priority].burst;
+      p[highest_priority].remaining = 0;
+      completed++;
+      printf("|P%d|%d",p[highest_priority].pid, completion_time);
+      sum_ta += p[highest_priority].turnaround;
+      avg_ta = sum_ta/n; 
+      p[i].turnaround = p[i].completion - p[i].arrival;
+      p[i].waiting = p[i].turnaround - p[i].burst;
+      sum_wt += p[highest_priority].waiting;
+      avg_wt = sum_wt/n;
+    }
+    
+    printf("\nAverage Turnaround Time: %0.2f", avg_ta);
+    printf("\nAverage Waiting Time: %0.2f", avg_wt);
+  }
+
+int main() {
+   int i, n, choice, quantum;
+   printf("\nEnter the number of processes: ");
+   scanf("%d",&n);
+   struct Process p[n];
+   for(i = 0; i < n; i++) {
+    printf("Enter the arrival time, burst time and priority of Process %d:", i+1);
+     p[i].pid = i+1;
+     printf("\nArrival time:");
+     scanf("%d", &p[i].arrival);
+     printf("\nBurst time: ");
+     scanf("%d", &p[i].burst);
+     printf("\nPriority: ");
+     scanf("%d", &p[i].priority);
+    }
+   printf("\nEnter the time quantum: ");
+   scanf("%d", &quantum);
+   
+   while(1) {
+       printf("\nMenu is:\n");
+       printf("1. FCFS\n");
+       printf("2. SJf\n");
+       printf("3. Round Robin\n");
+       printf("4. Priority Scheduling\n");
+       printf("5. Exit\n");
+       printf("\nEnter the choice: ");
+       scanf("%d", &choice);
+       
+     if(choice == 1)
+      fcfs(p,n);
+     else if(choice == 2)
+      sjf(p,n);
+     else if(choice == 3)
+      rr(p,n,quantum);
+     else if(choice == 4)
+      priority_scheduling(p,n);
+     else if(choice == 5) {
+      printf("\nExiting the program!\n");
+      exit(0);
+     }
+     else {
+      printf("Invalid Choice");
+      }
+    printf("\n");
+    printf("\nPID\tAT\tBT\tCT\tTA\tWT");
+    for(i = 0; i < n; i++) {
+      printf("\n%d\t%d\t%d\t%d\t%d\t%d",p[i].pid, p[i].arrival, p[i].burst, p[i].completion, p[i].turnaround, p[i].waiting); 
+   }
+    }
+  return 0;
+}
