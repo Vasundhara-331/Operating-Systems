@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+
+void bubble_sort(int *arr, int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
+    
+    int arr[n];
+    printf("Enter elements: ");
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+    
+    int half = n / 2, fd[2];
+    pipe(fd);
+    
+    if (fork() == 0) { // Child process
+        close(fd[0]);
+        bubble_sort(arr + half, n - half);
+        printf("Sorted second half by child: ");
+        for (int i = half; i < n; i++) printf("%d ", arr[i]);
+        printf("\n");
+        write(fd[1], arr + half, (n - half) * sizeof(int));
+        close(fd[1]);
+        exit(0);
+    } else { // Parent process
+        close(fd[1]);
+        bubble_sort(arr, half);
+        printf("Sorted first half by parent: ");
+        for (int i = 0; i < half; i++) printf("%d ", arr[i]);
+        printf("\n");
+        
+        read(fd[0], arr + half, (n - half) * sizeof(int));
+        close(fd[0]);
+        
+        int i = 0, j = half, k = 0, sorted[n];
+        while (i < half && j < n) sorted[k++] = (arr[i] < arr[j]) ? arr[i++] : arr[j++];
+        while (i < half) sorted[k++] = arr[i++];
+        while (j < n) sorted[k++] = arr[j++];
+        
+        printf("Final sorted array: ");
+        for (int i = 0; i < n; i++) printf("%d ", sorted[i]);
+        printf("\n");
+        
+        wait(NULL);
+    }
+    return 0;
+}
