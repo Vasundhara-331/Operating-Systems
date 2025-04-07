@@ -1,0 +1,73 @@
+//Terminal A
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <string.h>
+#include <unistd.h>
+
+int main() {
+    int shm_id = shm_open("/chat", O_CREAT | O_RDWR, 0777);
+    ftruncate(shm_id, 4096);
+    char *ptr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, shm_id, 0);
+    
+    while (1) {
+        printf("[Terminal A] Write: ");
+        fgets(ptr, 4096, stdin);
+        if (strcmp(ptr, "exit\n") == 0) break;
+        sleep(1);
+        printf("[Terminal A] Read: %s", ptr);
+    }
+
+    munmap(ptr, 4096);
+    close(shm_id);
+    return 0;
+}
+
+//Terminal B
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <string.h>
+#include <unistd.h>
+
+int main() {
+    int shm_id = shm_open("/chat", O_CREAT | O_RDWR, 0777);
+    ftruncate(shm_id, 4096);
+    char *ptr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, shm_id, 0);
+
+    while (1) {
+        sleep(1);
+        printf("[Terminal B] Read: %s", ptr);
+        printf("[Terminal B] Write: ");
+        fgets(ptr, 4096, stdin);
+        if (strcmp(ptr, "exit\n") == 0) break;
+    }
+
+    munmap(ptr, 4096);
+    close(shm_id);
+    return 0;
+}
+
+Terminal C
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <string.h>
+
+int main() {
+    int shm_id = shm_open("/chat", O_CREAT | O_RDWR, 0777);
+    ftruncate(shm_id, 4096);
+    char *ptr = mmap(NULL, 4096, PROT_READ, MAP_SHARED, shm_id, 0);
+
+    printf("[Terminal C] Monitoring chat. Type 'exit' from A or B to stop.\n");
+    while (1) {
+        if (strncmp(ptr, "exit", 4) == 0) break;
+        printf("[Terminal C] Seen: %s", ptr);
+        sleep(2);
+    }
+
+    munmap(ptr, 4096);
+    close(shm_id);
+    return 0;
+}
