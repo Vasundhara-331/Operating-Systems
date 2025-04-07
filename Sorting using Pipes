@@ -1,0 +1,113 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+// Simple bubble sort
+void sort(int arr[], int size) {
+    for(int i = 0; i < size - 1; i++) {
+        for(int j = 0; j < size - i - 1; j++) {
+            if(arr[j] > arr[j+1]) {
+                // swap
+                int temp = arr[j];
+                arr[j] = arr[j+1];
+                arr[j+1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int pipe1[2], pipe2[2]; // pipe1: parent->child, pipe2: child->parent
+    pipe(pipe1);
+    pipe(pipe2);
+
+    int n;
+    printf("Enter number of elements (even number): ");
+    scanf("%d", &n);
+
+    if(n % 2 != 0 || n <= 0) {
+        printf("Please enter a positive even number.\n");
+        return 1;
+    }
+
+    int arr[n];
+    printf("Enter %d elements: ", n);
+    for(int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    int half = n / 2;
+
+    int pid = fork();
+
+    if(pid == 0) {
+        // ---------- Child ----------
+        close(pipe1[1]); // Close write end of pipe1
+        int child_half[half];
+        read(pipe1[0], child_half, sizeof(child_half));
+        close(pipe1[0]);
+
+        sort(child_half, half);
+
+        printf("\nChild sorted half: ");
+        for(int i = 0; i < half; i++) {
+            printf("%d ", child_half[i]);
+        }
+        printf("\n");
+
+        close(pipe2[0]); // Close read end of pipe2
+        write(pipe2[1], child_half, sizeof(child_half));
+        close(pipe2[1]);
+
+        exit(0);
+    } else {
+        // ---------- Parent ----------
+        int parent_half[half];
+        for(int i = 0; i < half; i++) {
+            parent_half[i] = arr[i];
+        }
+
+        int child_half[half];
+        for(int i = 0; i < half; i++) {
+            child_half[i] = arr[half + i];
+        }
+
+        close(pipe1[0]); // Close read end of pipe1
+        write(pipe1[1], child_half, sizeof(child_half));
+        close(pipe1[1]);
+
+        sort(parent_half, half);
+        printf("\nParent sorted half: ");
+        for(int i = 0; i < half; i++) {
+            printf("%d ", parent_half[i]);
+        }
+        printf("\n");
+
+        wait(NULL); // Wait for child to finish
+
+        close(pipe2[1]); // Close write end of pipe2
+        read(pipe2[0], child_half, sizeof(child_half));
+        close(pipe2[0]);
+
+        // Merge sorted halves
+        int final[n];
+        int i = 0, j = 0, k = 0;
+        while(i < half && j < half) {
+            if(parent_half[i] < child_half[j])
+                final[k++] = parent_half[i++];
+            else
+                final[k++] = child_half[j++];
+        }
+        while(i < half) final[k++] = parent_half[i++];
+        while(j < half) final[k++] = child_half[j++];
+
+        printf("\nFinal sorted array: ");
+        for(int i = 0; i < n; i++) {
+            printf("%d ", final[i]);
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
