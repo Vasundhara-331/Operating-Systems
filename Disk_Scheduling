@@ -1,0 +1,281 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+void fcfs(int requests[], int n, int head) {
+    int totalSeekTime = 0;
+    char direction[10];
+    printf("\nFCFS Order: %d", head);
+    for (int i = 0; i < n; i++) {
+        totalSeekTime += abs(head - requests[i]);
+        if (head > requests[i]) {
+            sprintf(direction, "Left");
+        } else {
+            sprintf(direction, "Right");
+        }
+        head = requests[i];
+        printf(" -> %d [%s]", head, direction);
+    }
+    printf("\nTotal Seek Time = %d\n", totalSeekTime);
+}
+
+void sstf(int requests[], int n, int head) {
+    int totalSeekTime = 0, completed[100] = {0};
+    char direction[10];
+    printf("\nSSTF Order: %d", head);
+    for (int i = 0; i < n; i++) {
+        int min = 1e9, index = -1;
+        for (int j = 0; j < n; j++) {
+            if (!completed[j] && abs(requests[j] - head) < min) {
+                min = abs(requests[j] - head);
+                index = j;
+            }
+        }
+        completed[index] = 1;
+        totalSeekTime += abs(head - requests[index]);
+        if (head > requests[index]) {
+            sprintf(direction, "Left");
+        } else {
+            sprintf(direction, "Right");
+        }
+        head = requests[index];
+        printf(" -> %d [%s]", head, direction);
+    }
+    printf("\nTotal Seek Time = %d\n", totalSeekTime);
+}
+
+void scan(int requests[], int n, int head, int prev, int diskSize) {
+    int totalSeekTime = 0;
+    int temp[100];
+    char direction[10];
+    for (int i = 0; i < n; i++) {
+        temp[i] = requests[i];
+    }
+    temp[n++] = head;
+
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (temp[j] > temp[j + 1]) {
+                int t = temp[j];
+                temp[j] = temp[j + 1];
+                temp[j + 1] = t;
+            }
+        }
+    }
+
+    int i;
+    for (i = 0; i < n; i++) {
+        if (temp[i] == head) break;
+    }
+
+    printf("\nSCAN Order: %d", head);
+    if (prev < head) {
+        for (int j = i + 1; j < n; j++) {
+            totalSeekTime += abs(head - temp[j]);
+            if (head > temp[j]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[j];
+            printf(" -> %d [%s]", head, direction);
+        }
+        if (head != diskSize - 1) {
+            totalSeekTime += abs(head - (diskSize - 1));
+            head = diskSize - 1;
+            printf(" -> %d [Right]", head);
+        }
+        for (int j = i - 1; j >= 0; j--) {
+            totalSeekTime += abs(head - temp[j]);
+            if (head > temp[j]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[j];
+            printf(" -> %d [%s]", head, direction);
+        }
+    } else {
+        for (int j = i - 1; j >= 0; j--) {
+            totalSeekTime += abs(head - temp[j]);
+            if (head > temp[j]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[j];
+            printf(" -> %d [%s]", head, direction);
+        }
+        if (head != 0) {
+            totalSeekTime += head;
+            head = 0;
+            printf(" -> %d [Left]", head);
+        }
+        for (int j = i + 1; j < n; j++) {
+            totalSeekTime += abs(head - temp[j]);
+            if (head > temp[j]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[j];
+            printf(" -> %d [%s]", head, direction);
+        }
+    }
+    printf("\nTotal Seek Time = %d\n", totalSeekTime);
+}
+
+void cscan(int requests[], int n, int head, int prev, int size) {
+    int totalSeekTime = 0;
+    int temp[100], idx = 0;
+    char direction[10];
+
+    // Copy and sort the request array
+    for (int i = 0; i < n; i++) {
+        temp[i] = requests[i];
+    }
+
+    // Sort the requests in ascending order
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (temp[j] > temp[j + 1]) {
+                int t = temp[j];
+                temp[j] = temp[j + 1];
+                temp[j + 1] = t;
+            }
+        }
+    }
+
+    // Find the index of the first request greater than the current head
+    for (int i = 0; i < n; i++) {
+        if (temp[i] > head) {
+            idx = i;
+            break;
+        }
+    }
+
+    printf("\nC-SCAN Order: %d", head);
+
+    if (head >= prev) {
+        // Move towards the end of the disk
+        for (int i = idx; i < n; i++) {
+            totalSeekTime += abs(head - temp[i]);
+            if (head > temp[i]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[i];
+            printf(" -> %d [%s]", head, direction);
+        }
+
+        // Move to the end of the disk if not already there
+        if (head != size - 1) {
+            totalSeekTime += abs(head - (size - 1));
+            head = size - 1;
+            printf(" -> %d [Right]", head);
+        }
+        
+        totalSeekTime += head;  // head is now at the end of the disk
+        head = 0;
+        printf(" -> 0 [Left]");
+
+        
+        for (int i = 0; i < idx; i++) {
+            totalSeekTime += abs(head - temp[i]);
+            if (head > temp[i]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[i];
+            printf(" -> %d [%s]", head, direction);
+        }
+
+    } else {
+        // Move towards the start of the disk
+        for (int i = idx - 1; i >= 0; i--) {
+            totalSeekTime += abs(head - temp[i]);
+            if (head > temp[i]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[i];
+            printf(" -> %d [%s]", head, direction);
+        }
+
+        // Move to the start of the disk if not already there
+        if (head != 0) {
+            totalSeekTime += head;
+            head = 0;
+            printf(" -> %d [Left]", head);
+        }
+
+        totalSeekTime += (size - 1); 
+        head = size - 1;
+        printf(" -> %d [Right]", head);
+
+        for (int i = n - 1; i >= idx; i--) {
+            totalSeekTime += abs(head - temp[i]);
+            if (head > temp[i]) {
+                sprintf(direction, "Left");
+            } else {
+                sprintf(direction, "Right");
+            }
+            head = temp[i];
+            printf(" -> %d [%s]", head, direction);
+        }
+    }
+
+    printf("\nTotal Seek Time = %d\n", totalSeekTime);
+}
+
+int main() {
+    int n, head, prev, diskSize, requests[100];
+    int choice;
+
+    printf("Enter number of requests: ");
+    scanf("%d", &n);
+    printf("Enter the request sequence: ");
+    for (int i = 0; i < n; i++) scanf("%d", &requests[i]);
+
+    printf("Enter initial head position: ");
+    scanf("%d", &head);
+    printf("Enter previous head position: ");
+    scanf("%d", &prev);
+    printf("Enter total disk size: ");
+    scanf("%d", &diskSize);
+
+    do {
+        printf("\nMenu:\n");
+        printf("1. FCFS\n");
+        printf("2. SSTF\n");
+        printf("3. SCAN\n");
+        printf("4. C-SCAN\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                fcfs(requests, n, head);
+                break;
+            case 2:
+                sstf(requests, n, head);
+                break;
+            case 3:
+                scan(requests, n, head, prev, diskSize);
+                break;
+            case 4:
+                cscan(requests, n, head, prev, diskSize);
+                break;
+            case 5:
+                printf("Exiting program.\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 5);
+
+    return 0;
+}
