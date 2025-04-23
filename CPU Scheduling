@@ -205,35 +205,30 @@ int main() {
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
-        // Deep copy to preserve original inputs
-        struct Process temp[n];
-        memcpy(temp, p, sizeof(p));
-
         switch(choice) {
             case 1:
-                fcfs(temp, n);
+                fcfs(p, n);
                 break;
             case 2:
-                sjf(temp, n);
+                sjf(p, n);
                 break;
             case 3:
-                rr(temp, n, quantum);
+                rr(p, n, quantum);
                 break;
             case 4:
-                priority_scheduling(temp, n);
+                priority_scheduling(p, n);
                 break;
             case 5:
                 printf("Exiting program.\n");
-                return 0;
+                exit(0);
             default:
                 printf("Invalid choice. Try again.\n");
-                continue;
         }
 
         printf("\n\nPID\tAT\tBT\tCT\tTA\tWT\n");
         for(i = 0; i < n; i++) {
-            printf("%d\t%d\t%d\t%d\t%d\t%d\n", temp[i].pid, temp[i].arrival, temp[i].burst,
-                   temp[i].completion, temp[i].turnaround, temp[i].waiting);
+            printf("%d\t%d\t%d\t%d\t%d\t%d\n", p[i].pid, p[i].arrival, p[i].burst,
+                   p[i].completion, p[i].turnaround, p[i].waiting);
         }
     }
 
